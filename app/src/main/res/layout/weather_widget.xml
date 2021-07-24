@@ -5,8 +5,6 @@
     android:padding="@dimen/widget_margin"
     android:theme="@style/ThemeOverlay.WeatherApp.AppWidgetContainer">
 
-
-
     <TextView
         android:id="@+id/appwidget_text"
         android:layout_width="wrap_content"

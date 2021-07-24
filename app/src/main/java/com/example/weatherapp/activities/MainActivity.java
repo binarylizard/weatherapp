@@ -1,4 +1,4 @@
-package com.example.weatherapp;
+package com.example.weatherapp.activities;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.Manifest;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -20,6 +21,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.example.weatherapp.R;
 import com.example.weatherapp.adapters.WeatherAdapter;
 import com.example.weatherapp.databinding.ActivityMainBinding;
 import com.example.weatherapp.models.HourlyWeather.Hourly;
@@ -27,17 +29,19 @@ import com.example.weatherapp.models.HourlyWeather.OpenWeatherResponse;
 import com.example.weatherapp.repositories.WeatherRepository;
 import com.example.weatherapp.retrofit.ApiClient;
 import com.example.weatherapp.retrofit.ApiInterface;
-import com.example.weatherapp.utils.TimeComparator;
 import com.example.weatherapp.utils.Utility;
 import com.example.weatherapp.viewmodels.MainActivityViewModel;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.gson.Gson;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import retrofit2.Call;
@@ -77,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         initRecyclerView();
 
         checkForLocationPermission();
-
+//        checkGooglePlayServicesAvailable();
         mainActivityViewModel.getList().observe(this, new Observer<List<Hourly>>() {
             @Override
             public void onChanged(List<Hourly> strings) {
@@ -85,6 +89,29 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    private boolean checkGooglePlayServicesAvailable()
+    {
+        final int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(getApplicationContext());
+        if (status == ConnectionResult.SUCCESS)
+        {
+            Log.d("sagar", "Google Play Services available ");
+            return true;
+        }
+
+        Log.d("sagar", "Google Play Services not available: " + GooglePlayServicesUtil.getErrorString(status));
+
+        if (GooglePlayServicesUtil.isUserRecoverableError(status))
+        {
+            final Dialog errorDialog = GooglePlayServicesUtil.getErrorDialog(status, this, 1);
+            if (errorDialog != null)
+            {
+                errorDialog.show();
+            }
+        }
+
+        return false;
     }
 
     private void checkForLocationPermission() {
@@ -107,6 +134,25 @@ public class MainActivity extends AppCompatActivity {
 
     private void getMyCoodinates() {
         FusedLocationProviderClient fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        LocationRequest mLocationRequest = LocationRequest.create();
+        mLocationRequest.setInterval(60000);
+        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        LocationCallback mLocationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) {
+                    return;
+                }
+                for (Location location : locationResult.getLocations()) {
+                    if (location != null) {
+                        //TODO: UI updates.
+                    }
+                }
+            }
+        };
+        LocationServices.getFusedLocationProviderClient(context).requestLocationUpdates(mLocationRequest, mLocationCallback, null);
+        fusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, null);
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(this, new OnSuccessListener<Location>() {
                     @Override
@@ -118,6 +164,8 @@ public class MainActivity extends AppCompatActivity {
                             lon = location.getLongitude();
                             getHourlyWeather();
 
+                        } else {
+                            Toast.makeText(context, "Could not get your Location, Make sure you have Google Play services installed and signed in.", Toast.LENGTH_LONG).show();
                         }
                     }
                 })
